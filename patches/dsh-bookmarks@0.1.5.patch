@@ -1,0 +1,355 @@
+diff --git a/lib/client.js b/lib/client.js
+--- a/lib/client.js
++++ b/lib/client.js
+@@ -14739,8 +14739,8 @@
+ .dshbm_footerLabel{font-size:13px}
+ .dshbm_footerAction:hover{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
+ .dshbm_badge{display:none}
+-.dshbm_overlay{position:fixed;inset:0;z-index:120;display:flex;flex-direction:column;background:var(--dsw-alias-bg-base);pointer-events:auto;color:var(--dsw-alias-label-primary)}
+-.dshbm_head{display:flex;align-items:center;gap:10px;padding:16px 32px;background:var(--dsw-alias-bg-layer-1);border-bottom:1px solid var(--dsw-alias-border-l2)}
++.dshbm_overlay{position:relative;box-sizing:border-box;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;display:flex;flex-direction:column;padding-top:var(--dsh-frame-top-clearance,0px);background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary)}
++.dshbm_head{display:flex;flex-shrink:0;align-items:center;gap:10px;padding:16px 32px;background:var(--dsw-alias-bg-layer-1);border-bottom:1px solid var(--dsw-alias-border-l2)}
+ .dshbm_back{display:inline-flex;align-items:center;gap:4px;cursor:pointer;background:0 0;border:none;border-radius:8px;padding:5px 10px 5px 6px;color:var(--dsw-alias-label-secondary);font-size:13px;font-family:inherit}
+ .dshbm_back:hover{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
+ .dshbm_headIcon{color:#4d6bfe;display:inline-flex}
+@@ -14748,8 +14748,11 @@
+ .dshbm_count{font-size:12px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-2);border-radius:10px;padding:2px 10px;line-height:18px}
+ .dshbm_close{color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border:none;border-radius:8px;padding:6px;display:inline-flex}
+ .dshbm_close:hover{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
+-.dshbm_body{flex:1;overflow-y:auto;padding:24px 32px 48px;display:flex;justify-content:center;align-items:flex-start}
+-.dshbm_inner{width:100%;max-width:860px;display:flex;flex-direction:column;gap:14px}
++.dshbm_body{flex:1;min-height:0;overflow:hidden;padding:24px 32px;display:flex}
++.dshbm_inner{width:100%;min-height:0;display:flex;flex-direction:column;gap:14px}
++.dshbm_columns{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
++.dshbm_column{min-width:0;min-height:0;overflow-y:auto;overscroll-behavior:contain}
++.dshbm_column+.dshbm_column{border-left:1px solid var(--dsw-alias-border-l2);padding-left:24px}
+ .dshbm_toolbar{display:flex;flex-direction:column;gap:10px}
+ .dshbm_toolbarRow{display:flex;gap:10px;align-items:center}
+ .dshbm_search{position:relative;display:flex;align-items:center;flex:1}
+@@ -14799,6 +14802,8 @@
+   close: "dshbm_close",
+   body: "dshbm_body",
+   inner: "dshbm_inner",
++  columns: "dshbm_columns",
++  column: "dshbm_column",
+   toolbar: "dshbm_toolbar",
+   toolbarRow: "dshbm_toolbarRow",
+   search: "dshbm_search",
+@@ -14842,6 +14847,7 @@
+   "tags.aria": "\u6536\u85CF\u6807\u7B7E",
+   "center.title": "\u6536\u85CF\u4E2D\u5FC3",
+   "center.back": "\u8FD4\u56DE",
++  "center.replies": "回复收藏",
+   "center.empty": "\u8FD8\u6CA1\u6709\u6536\u85CF\u3002\u628A\u9F20\u6807\u79FB\u5230\u67D0\u6761 AI \u56DE\u590D\u4E0A\uFF0C\u70B9\u5F52\u6863\u56FE\u6807\u5373\u53EF\u6536\u85CF\u3002",
+   "center.search": "\u641C\u7D22\u6536\u85CF\u2026",
+   "center.all": "\u5168\u90E8",
+@@ -14874,6 +14880,7 @@
+   "tags.aria": "Bookmark tags",
+   "center.title": "Bookmarks",
+   "center.back": "Back",
++  "center.replies": "Reply bookmarks",
+   "center.empty": "No bookmarks yet. Hover an assistant reply and click the archive icon to bookmark it.",
+   "center.search": "Search bookmarks\u2026",
+   "center.all": "All",
+@@ -14923,34 +14930,6 @@
+ function carrierFailure(error51) {
+   return { ok: false, error: { code: error51.code, message: error51.message } };
+ }
+-var centerOpen = /* @__PURE__ */ (() => {
+-  let open = false;
+-  const listeners = /* @__PURE__ */ new Set();
+-  const emit = () => {
+-    for (const listener of listeners)
+-      try {
+-        listener();
+-      } catch {
+-      }
+-  };
+-  return {
+-    get: () => open,
+-    set: (value) => {
+-      if (open !== value) {
+-        open = value;
+-        emit();
+-      }
+-    },
+-    toggle: () => {
+-      open = !open;
+-      emit();
+-    },
+-    subscribe: (listener) => {
+-      listeners.add(listener);
+-      return () => listeners.delete(listener);
+-    }
+-  };
+-})();
+ var BookmarkStore = class {
+   constructor(remote) {
+     __publicField(this, "remote");
+@@ -15226,7 +15205,7 @@
+     failure !== null && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: css.failure, role: "status", children: failure })
+   ] });
+ }
+-function BookmarkCenterToggle({ ensure, useBookmarks, t }) {
++function BookmarkCenterToggle({ ensure, useBookmarks, t, wide, toggleCenter }) {
+   const view = useBookmarks((value) => value);
+   const seeded = (0, import_react.useRef)(false);
+   const seed = (0, import_react.useCallback)(() => {
+@@ -15239,12 +15218,13 @@
+     "button",
+     {
+       type: "button",
+-      className: css.footerAction,
++      "data-dsh-footer-entry": "bookmarks",
++      "data-wide": String(wide !== false),
+       "aria-label": t("center.title"),
+       title: t("center.title"),
+       onClick: () => {
+         seed();
+-        centerOpen.toggle();
++        toggleCenter();
+       },
+       children: [
+         /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconArchiveOutlineRegular, { size: 16 }),
+@@ -15253,17 +15233,16 @@
+     }
+   );
+ }
+-function BookmarkCenterEntry({ ensure, remove, update, jumpTo, useBookmarks, t }) {
+-  const open = (0, import_react.useSyncExternalStore)(centerOpen.subscribe, centerOpen.get);
++function BookmarkCenterEntry({ ensure, remove, update, jumpTo, useBookmarks, t, renderSlot, closeCenter }) {
++  // The shell mounts this page only while the bookmarks main panel is selected.
+   const view = useBookmarks((value) => value);
+   const seeded = (0, import_react.useRef)(false);
+   (0, import_react.useEffect)(() => {
+-    if (open && !seeded.current) {
++    if (!seeded.current) {
+       seeded.current = true;
+       ensure();
+     }
+-  }, [open, ensure]);
+-  if (!open) return null;
++  }, [ensure]);
+   return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+     BookmarkCenterOverlay,
+     {
+@@ -15272,11 +15251,12 @@
+       remove,
+       update,
+       jumpTo,
+-      onClose: () => centerOpen.set(false)
++      renderSlot,
++      onClose: closeCenter
+     }
+   );
+ }
+-function BookmarkCenterOverlay({ t, view, remove, update, jumpTo, onClose }) {
++function BookmarkCenterOverlay({ t, view, remove, update, jumpTo, onClose, renderSlot }) {
+   const [query, setQuery] = (0, import_react.useState)("");
+   const [tagFilter, setTagFilter] = (0, import_react.useState)(null);
+   const [editingKey, setEditingKey] = (0, import_react.useState)(null);
+@@ -15350,8 +15330,8 @@
+     anchor.remove();
+     URL.revokeObjectURL(url2);
+   };
+-  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: css.overlay, role: "dialog", "aria-label": t("center.title"), children: [
+-    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: css.head, children: [
++  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: css.overlay, role: "region", "data-dsh-bookmarks-main-panel": "", "aria-label": t("center.title"), children: [
++    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: css.head, style: { boxSizing: "border-box", flexShrink: 0 }, children: [
+       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { type: "button", className: css.back, onClick: onClose, children: [
+         /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconChevronLeftOutlineRegular, {}),
+         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: t("center.back") })
+@@ -15397,6 +15377,10 @@
+           ))
+         ] })
+       ] }),
++      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: css.columns, style: { display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 24, flex: "1 1 0", minHeight: 0 }, children: [
++        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: css.column, style: { minWidth: 0, minHeight: 0, overflow: "auto" }, children: renderSlot?.("bookmarks.center.section", { query, appearance: css, jumpTo }) }),
++        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: css.column, style: { minWidth: 0, minHeight: 0, overflow: "auto" }, "aria-label": t("center.replies"), children: [
++      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { style: { fontSize: 14, margin: "20px 0 12px" }, children: `${t("center.replies")} (${filtered.length})` }),
+       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: css.list, children: [
+         view.status === "loading" && items.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: css.empty, children: "\u2026" }),
+         view.status !== "loading" && items.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: css.empty, children: [
+@@ -15449,14 +15433,23 @@
+             ] })
+           ] }, key);
+         })
++      ] })
++        ] })
+       ] }),
+       failure !== null && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: css.failure, role: "status", children: failure })
+     ] }) })
+   ] });
+ }
+ var NS = "bookmarks";
+-var inject = ["slots", "remote", "locale", "sessions"];
++var BOOKMARKS_MAIN_PANEL_ID = "bookmarks";
++var inject = ["slots", "remote", "locale", "sessions", "layout"];
+ async function apply(ctx) {
++  // Navigation is owned by the shell, so the sidebar remains mounted.
++  const closeCenter = () => ctx.layout.selectPanel(null);
++  const toggleCenter = () => {
++    const active = ctx.layout.panelInfo.getSnapshot().activePanelId;
++    ctx.layout.selectPanel(active === BOOKMARKS_MAIN_PANEL_ID ? null : BOOKMARKS_MAIN_PANEL_ID);
++  };
+   ctx.effect(() => ctx.locale.register(NS, { zh, en }), "bookmarks: dictionaries");
+   await ctx.remote.$mount(TYPERT_REMOTE);
+   const remote = ctx.get("remote.bookmarks");
+@@ -15474,7 +15467,7 @@
+     const onKey = (event) => {
+       if (event.altKey && !event.ctrlKey && !event.metaKey && event.code === "KeyB") {
+         event.preventDefault();
+-        centerOpen.toggle();
++        toggleCenter();
+       }
+     };
+     window.addEventListener("keydown", onKey);
+@@ -15501,6 +15494,28 @@
+       dispose();
+     };
+   });
++  ctx.effect(() => {
++    const style = document.createElement("style");
++    style.dataset.dshFooterAdapter = "bookmarks";
++    style.textContent = `
++/* dsh-footer-only-repair-v3: four entries; static, scoped, no geometry observers */
++:is([class*="_footerActions"],div:has(> [data-slot="sidebar.footer.action"])):has([data-dsh-footer-entry]){display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;align-items:stretch!important;justify-content:flex-start!important;gap:2px!important;width:100%!important;min-width:0!important;padding:0!important}
++[data-slot="sidebar.footer.action"]:has([data-dsh-footer-entry]){display:contents!important}
++:is([class*="_footerActions"],[data-slot="sidebar.footer.action"]) [data-dsh-footer-entry]{box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;flex:0 0 36px!important;width:100%!important;min-width:0!important;max-width:none!important;height:36px!important;min-height:36px!important;max-height:36px!important;margin:0!important;padding:6px 10px!important;gap:8px!important;border:0!important;border-radius:8px!important;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:14px!important;line-height:22px!important;text-align:left!important;cursor:pointer;white-space:nowrap;overflow:hidden;position:relative!important;inset:auto!important;transform:none!important}
++:is([class*="_footerActions"],[data-slot="sidebar.footer.action"]) [data-dsh-footer-entry]>svg{flex:0 0 16px!important;width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;margin:0!important}
++[data-dsh-footer-entry]>span{overflow:hidden;text-overflow:ellipsis}
++[data-dsh-footer-entry]:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
++[data-dsh-footer-entry]:focus-visible{outline:2px solid var(--dsw-alias-label-primary);outline-offset:-2px}
++:is([class*="_footerActions"],[data-slot="sidebar.footer.action"]) [data-dsh-footer-entry="bookmarks"]{order:20!important}
++:is([class*="_footerActions"],[data-slot="sidebar.footer.action"]) [data-dsh-footer-entry="skill-explorer"]{order:25!important}
++:is([class*="_footerActions"],[data-slot="sidebar.footer.action"]) [data-dsh-footer-entry="mnemon"]{order:30!important}
++:is([class*="_footerActions"],[data-slot="sidebar.footer.action"]) [data-dsh-footer-entry="market"]{order:40!important}
++:is([class*="_footerActions"],[data-slot="sidebar.footer.action"]) [data-dsh-footer-entry][data-wide="false"]{width:36px!important;min-width:36px!important;max-width:36px!important;padding:10px!important;justify-content:center!important;gap:0!important;align-self:flex-start!important}
++[data-dsh-footer-entry][data-wide="false"]>span{display:none!important}
++`;
++    document.head.appendChild(style);
++    return () => style.remove();
++  }, "desktop footer: bookmarks");
+   ctx.slots.inject("sidebar.footer.action", () => {
+     const dispose = ctx.slots.register(
+       {
+@@ -15510,7 +15525,8 @@
+         locale: NS,
+         inject: () => ({
+           hooks: { bookmarks: store },
+-          ensure: () => store.ensure()
++          ensure: () => store.ensure(),
++          toggleCenter
+         })
+       },
+       BookmarkCenterToggle
+@@ -15519,20 +15535,22 @@
+       dispose();
+     };
+   });
+-  ctx.slots.inject("shell.overlay", () => {
++  ctx.slots.inject("main", () => {
+     const dispose = ctx.slots.register(
+       {
+-        name: "shell.overlay",
+-        id: "bookmarks",
++        name: "main",
++        key: BOOKMARKS_MAIN_PANEL_ID,
+         order: 10,
+         locale: NS,
++        children: { "bookmarks.center.section": { kind: "list", scope: "root" } },
+         inject: () => ({
+           hooks: { bookmarks: store },
+           ensure: () => store.ensure(),
+           update: (sessionId, messageId, note, tags) => store.update(sessionId, messageId, note, tags),
+           remove: (sessionId, messageId) => store.remove(sessionId, messageId),
++          closeCenter,
+           jumpTo: (sessionId) => {
+-            centerOpen.set(false);
++            closeCenter();
+             ctx.sessions.open(sessionId);
+           }
+         })
+diff --git a/lib/index.js b/lib/index.js
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -8,6 +8,7 @@
+ // @deepseek-ai/dsh-message-feedback contract so concurrent tabs stay coherent.
+ import { Buffer } from "node:buffer";
+ import { randomUUID } from "node:crypto";
++import { isDeepStrictEqual } from "node:util";
+ import { Service } from "@deepseek-ai/cordis";
+ import { deriveEventMessage, isAppendSurfaceEvent } from "@deepseek-ai/dsh-session/surface";
+ import { defineDomain, domainTable } from "@deepseek-ai/dsh-storage-domain";
+@@ -278,15 +279,48 @@
+ 
+   // ── session inspection ────────────────────────────────────────────────────
+ 
+-  /** Resolve a live owner directly; otherwise use the storage catalog as the authority. */
++  /** Read a persisted log through the DSH 0.2 read-handle API; always release it. */
++  async readPersistedSession(sessionId) {
++    const persistence = this.ctx.sessionPersistence;
++    if (typeof persistence.open !== "function")
++      return await persistence.readFrom(sessionId, 0);
++    const handle = await persistence.open(sessionId, "read");
++    try {
++      const { events } = await handle.read();
++      return { meta: handle.header, events };
++    } finally {
++      await handle.close();
++    }
++  }
++
++  /** Inspect live history directly, or read cold history without resuming a session. */
+   async inspectSession(sessionId) {
+-    if (this.ctx.sessions.get(sessionId) === void 0) {
+-      const snapshots = await this.ctx.sessionPersistence.listSnapshots();
+-      const persisted = snapshots.some((snapshot) => snapshot.header.id === sessionId);
+-      if (!persisted && this.ctx.sessions.get(sessionId) === void 0)
++    const persistence = this.ctx.sessionPersistence;
++    if (typeof persistence.open !== "function") {
++      if (this.ctx.sessions.get(sessionId) === void 0) {
++        const snapshots = await persistence.listSnapshots();
++        if (!snapshots.some((snapshot) => snapshot.header.id === sessionId) &&
++            this.ctx.sessions.get(sessionId) === void 0)
++          return rejected({ code: "session-not-found", sessionId });
++      }
++      return success(await persistence.inspect(sessionId));
++    }
++    let live = this.ctx.sessions.get(sessionId);
++    if (live !== void 0)
++      return success({ meta: live.header, events: live.snapshotEvents() });
++    const stored = await persistence.stat(sessionId);
++    live = this.ctx.sessions.get(sessionId);
++    if (live !== void 0)
++      return success({ meta: live.header, events: live.snapshotEvents() });
++    if (stored === void 0)
++      return rejected({ code: "session-not-found", sessionId });
++    try {
++      return success(await this.readPersistedSession(sessionId));
++    } catch (error) {
++      if (error?.name === "SessionPersistenceNotFoundError")
+         return rejected({ code: "session-not-found", sessionId });
+-    }
+-    return success(await this.ctx.sessionPersistence.inspect(sessionId));
++      throw error;
++    }
+   }
+ 
+   /** Whether the inspected log contains the finalized append-origin assistant message. */
+@@ -304,9 +338,12 @@
+     if (live !== void 0 && sameHeaderIdentity(live.header, inspection.meta)) {
+       if (!(await this.ctx.sessions.flush(live)))
+         throw new Error(`bookmarks: no durability listener participated for live session '${inspection.meta.id}'`);
+-      return await this.ctx.sessionPersistence.readFrom(inspection.meta.id, 0);
+-    }
+-    return await this.ctx.sessionPersistence.readFrom(inspection.meta.id, 0);
++    }
++    const durable = await this.readPersistedSession(inspection.meta.id);
++    if (sameHeaderIdentity(durable.meta, inspection.meta) &&
++        !isDeepStrictEqual(durable.events.slice(0, inspection.events.length), inspection.events))
++      throw new Error(`bookmarks: target prefix is not durable for session '${inspection.meta.id}'`);
++    return durable;
+   }
+ 
+   /** First visible text of the addressed message, trimmed to the configured bound. */
